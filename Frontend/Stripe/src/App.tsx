@@ -1,95 +1,80 @@
-// src/App.tsx
-import React from "react";
+import React, { useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
-const App: React.FC = () => {
+// Load Stripe public key
+const stripePromise = loadStripe("your-publishable-key");
+
+const CheckoutForm: React.FC = () => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // Fetch the PaymentIntent client secret from your backend
+  const fetchClientSecret = async () => {
+    const response = await fetch("/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: 2000, currency: "usd" }), // Example amount
+    });
+    const data = await response.json();
+    setClientSecret(data.clientSecret);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements || !clientSecret) return;
+
+    setProcessing(true);
+
+    const cardElement = elements.getElement(CardElement);
+
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      clientSecret,
+      {
+        payment_method: {
+          card: cardElement!,
+        },
+      }
+    );
+
+    setProcessing(false);
+
+    if (error) {
+      setError(error.message || "Payment failed");
+    } else if (paymentIntent?.status === "succeeded") {
+      console.log("Payment succeeded");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="bg-blue-500 text-white text-center py-4">
-          <h1 className="text-2xl font-bold">Secure Payment</h1>
-          <p className="text-sm mt-1">Complete your payment with confidence</p>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="space-y-2">
-            <label className="block text-gray-700 font-semibold">
-              Cardholder Name
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your full name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-gray-700 font-semibold">
-              Card Information
-            </label>
-            <div className="w-full px-3 py-2 border border-gray-300 rounded-md">
-              {/* Stripe CardElement would be placed here */}
-              <div className="text-gray-400">Card number, expiry date, CVC</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-semibold">
-                Expiry Date
-              </label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="MM / YY"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-semibold">CVC</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="CVC"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-gray-700 font-semibold">
-              Billing Address
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Street address, P.O. box, company name, c/o"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-gray-700 font-semibold">
-              ZIP / Postal Code
-            </label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="ZIP / Postal code"
-            />
-          </div>
-
-          <button className="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition">
-            Pay Now
+    <div>
+      <button onClick={fetchClientSecret}>Initialize Payment</button>
+      {clientSecret && (
+        <form onSubmit={handleSubmit}>
+          <CardElement />
+          <button type="submit" disabled={!stripe || isProcessing}>
+            {isProcessing ? "Processing..." : "Pay"}
           </button>
-        </div>
-
-        <div className="bg-gray-50 text-center py-3">
-          <p className="text-xs text-gray-500">
-            By completing this purchase, you agree to our{" "}
-            <span className="text-blue-500">Terms</span> and{" "}
-            <span className="text-blue-500">Privacy Policy</span>.
-          </p>
-        </div>
-      </div>
+        </form>
+      )}
+      {error && <div>{error}</div>}
     </div>
   );
 };
 
-export default App;
+// Wrap the CheckoutForm component with Elements for Stripe
+const StripeContainer: React.FC = () => (
+  <Elements stripe={stripePromise}>
+    <CheckoutForm />
+  </Elements>
+);
+
+export default StripeContainer;
