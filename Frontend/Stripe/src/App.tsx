@@ -11,7 +11,24 @@ import {
 const stripePromise = loadStripe(
   "pk_test_51Pyz3TFFXEMRsbHHdKks2q9NoxKSVkyGVrVQOibxuVYNC2GFZerw2kN3gvDFc6zWW0wk6hYKCh9KwJZMQnSfIjNe00bqxZZ8Br"
 );
-
+const cardElementOptions = {
+  style: {
+    base: {
+      fontSize: "16px",
+      color: "#32325d",
+      "::placeholder": {
+        color: "#aab7c4",
+      },
+      padding: "10px", // Ensure padding aligns with your Tailwind spacing
+      border: "1px solid #e5e7eb", // Tailwind's border color
+      borderRadius: "0.375rem", // Tailwind's rounded-md
+    },
+    invalid: {
+      color: "#fa755a",
+      iconColor: "#fa755a",
+    },
+  },
+};
 const CheckoutForm: React.FC = () => {
   const stripe = useStripe();
   const elements = useElements();
@@ -67,18 +84,26 @@ const CheckoutForm: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="max-w-md mx-auto p-4 border rounded-md shadow-lg">
       {clientSecret ? (
-        <form onSubmit={handleSubmit}>
-          <CardElement />
-          <button type="submit" disabled={!stripe || isProcessing}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="p-2 border border-gray-300 rounded-md">
+            <CardElement options={cardElementOptions} />
+          </div>
+          <button
+            type="submit"
+            disabled={!stripe || isProcessing}
+            className={`w-full py-2 px-4 border rounded-md ${
+              isProcessing ? "bg-gray-400" : "bg-blue-500"
+            } text-white font-semibold`}
+          >
             {isProcessing ? "Processing..." : "Pay"}
           </button>
         </form>
       ) : (
         <div>Loading payment details...</div>
       )}
-      {error && <div>{error}</div>}
+      {error && <div className="text-red-500">{error}</div>}
     </div>
   );
 };
