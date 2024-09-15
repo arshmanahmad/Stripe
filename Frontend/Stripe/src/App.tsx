@@ -68,7 +68,6 @@ const CheckoutForm: React.FC = () => {
 
   return (
     <div>
-      {/* If clientSecret exists, show the form */}
       {clientSecret ? (
         <form onSubmit={handleSubmit}>
           <CardElement />
@@ -84,7 +83,6 @@ const CheckoutForm: React.FC = () => {
   );
 };
 
-// Wrap the CheckoutForm component with Elements for Stripe
 const StripeContainer: React.FC = () => (
   <Elements stripe={stripePromise}>
     <CheckoutForm />
