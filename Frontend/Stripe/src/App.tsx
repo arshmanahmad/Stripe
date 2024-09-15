@@ -8,7 +8,9 @@ import {
 } from "@stripe/react-stripe-js";
 
 // Load Stripe public key
-const stripePromise = loadStripe("your-publishable-key");
+const stripePromise = loadStripe(
+  "pk_test_51Pyz3TFFXEMRsbHHdKks2q9NoxKSVkyGVrVQOibxuVYNC2GFZerw2kN3gvDFc6zWW0wk6hYKCh9KwJZMQnSfIjNe00bqxZZ8Br"
+);
 
 const CheckoutForm: React.FC = () => {
   const stripe = useStripe();
@@ -17,7 +19,6 @@ const CheckoutForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  // Fetch the PaymentIntent client secret from your backend
   const fetchClientSecret = async () => {
     const response = await fetch("/create-payment-intent", {
       method: "POST",
