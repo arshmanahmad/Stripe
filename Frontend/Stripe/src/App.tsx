@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -19,15 +19,26 @@ const CheckoutForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  const fetchClientSecret = async () => {
-    const response = await fetch("/create-payment-intent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: 2000, currency: "usd" }), // Example amount
-    });
-    const data = await response.json();
-    setClientSecret(data.clientSecret);
-  };
+  // Fetch the client secret from the backend when the component mounts
+  useEffect(() => {
+    const fetchClientSecret = async () => {
+      const response = await fetch(
+        "http://localhost:8000/create-payment-intent",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: 2000, currency: "usd" }), // Dynamic data can be passed here
+        }
+      );
+      const data = await response.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret); // Set clientSecret in state
+      } else {
+        setError("Failed to fetch client secret.");
+      }
+    };
+    fetchClientSecret();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -57,14 +68,16 @@ const CheckoutForm: React.FC = () => {
 
   return (
     <div>
-      <button onClick={fetchClientSecret}>Initialize Payment</button>
-      {clientSecret && (
+      {/* If clientSecret exists, show the form */}
+      {clientSecret ? (
         <form onSubmit={handleSubmit}>
           <CardElement />
           <button type="submit" disabled={!stripe || isProcessing}>
             {isProcessing ? "Processing..." : "Pay"}
           </button>
         </form>
+      ) : (
+        <div>Loading payment details...</div>
       )}
       {error && <div>{error}</div>}
     </div>
